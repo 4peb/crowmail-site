@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Games — CrowMail</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="main.js" defer></script>
+  <style>
+    .ttt { display:grid; grid-template-columns:repeat(3,100px); gap:8px; }
+    .cell { width:100px;height:100px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:36px;background:white;box-shadow:0 4px 12px rgba(0,0,0,0.08); cursor:pointer;}
+  </style>
+</head>
+<body>
+<nav>
+  <div>
+    <a href="/home.html">Home</a>
+    <a href="/send.html">Send</a>
+    <a href="/view.html">Inbox</a>
+    <a href="/feedback.html">Feedback</a>
+    <a href="/ai.html">AI Bot</a>
+  </div>
+  <div>
+    <a href="#" onclick="logout()">Logout</a>
+  </div>
+</nav>
+
+<div class="card">
+  <h2>Games (Secret)</h2>
+  <div id="auth"></div>
+
+  <div id="lobby" style="display:none;">
+    <input id="g-name" placeholder="Room name (optional)"><button id="create">Create Room</button>
+    <div id="rooms"></div>
+  </div>
+
+  <div id="room-area" style="display:none;">
+    <h3 id="room-title"></h3>
+    <div class="ttt" id="board"></div>
+    <div id="game-status"></div>
+    <button id="leave">Leave</button>
+  </div>
+</div>
+
+<script>
+  async function setup() {
+    const u = getUser();
+    const auth = document.getElementById("auth");
+    if (!u) {
+      auth.innerHTML = `<p>Please login to play games.</p>
+        <input id="li-un" placeholder="username"><br>
+        <input id="li-pw" type="password" placeholder="password"><br>
+        <button id="li-btn">Login</button>`;
+      document.getElementById("li-btn").onclick = async () => {
+        const r = await login(document.getElementById("li-un").value, document.getElementById("li-pw").value);
+        if (r.ok) setup(); else alert(r.error||"failed");
+      };
+      return;
+    }
+    auth.innerHTML = `<p>Logged in as ${u.username}</p>`;
+    document.getElementById("lobby").style.display = "block";
+    loadRooms();
+    document.getElementById("create").onclick = async () => {
+      const name = document.getElementById("g-name").value;
+      const r = await createGame(name || "Room");
+      if (r.ok) { joinRoom(r.roomId); } else alert(r.error||"fail");
+    };
+  }
+
+  async function loadRooms() {
+    const r = await api("/api/games/list");
+    const rooms = r.rooms || [];
+    const div = document.getElementById("rooms");
+    div.innerHTML = "";
+    rooms.forEach(room => {
+      const el = document.createElement("div");
+      el.innerHTML = `<strong>${room.name}</strong> — ${room.players.length}/2 <button data-id="${room.id}">Join</button>`;
+      div.appendChild(el);
+    });
+    document.querySelectorAll("button[data-id]").forEach(b => b.onclick = () => joinRoom(b.getAttribute("data-id")));
+  }
+
+  async function joinRoom(id) {
+    const r = await joinGame(id);
+    if (!r.ok) return alert(r.error||"failed");
+    document.getElementById("lobby").style.display = "none";
+    document.getElementById("room-area").style.display = "block";
+    document.getElementById("room-title").innerText = "Room: " + r.room.name;
+    renderBoard(r.room);
+    // poll for updates every 2s
+    window.roomInterval = setInterval(async () => {
+      const s = await getGameState(id);
+      if (s.ok) renderBoard(s.room);
+    }, 2000);
+    document.getElementById("leave").onclick = () => {
+      clearInterval(window.roomInterval);
+      location.reload();
+    };
+  }
+
+  function renderBoard(room) {
+    const boardDiv = document.getElementById("board");
+    boardDiv.innerHTML = "";
+    const cells = room.board || Array(9).fill(null);
+    cells.forEach((c,i) => {
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      cell.innerText = c || "";
+      cell.onclick = async () => {
+        const u = getUser();
+        const res = await gameAction(room.id, {type:"move", idx:i, player:u.username});
+        if (!res.ok) alert(res.error||"move failed");
+        else renderBoard(res.room);
+      };
+      boardDiv.appendChild(cell);
+    });
+    document.getElementById("game-status").innerText = `Players: ${room.players.join(", ")} | Turn: ${room.turn}`;
+    // small win handling
+    if (room.winner) document.getElementById("game-status").innerText += ` | Winner: ${room.winner}`;
+  }
+
+  setup();
+</script>
+
+</body>
+</html>

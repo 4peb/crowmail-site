@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>CrowBot — CrowMail</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="main.js" defer></script>
+</head>
+<body>
+<nav>
+  <div>
+    <a href="/home.html">Home</a>
+    <a href="/send.html">Send</a>
+    <a href="/view.html">Inbox</a>
+    <a href="/feedback.html">Feedback</a>
+    <a href="/ai.html">AI Bot</a>
+  </div>
+  <div>
+    <a href="#" onclick="logout()">Logout</a>
+  </div>
+</nav>
+
+<div class="card">
+  <h2>CrowBot</h2>
+  <div id="chat" style="height:300px;overflow:auto;border:1px solid #eee;padding:10px;border-radius:12px;background:#fafafa"></div>
+  <div style="margin-top:12px;">
+    <input id="q" placeholder="Ask CrowBot something..." style="width:70%">
+    <button id="ask">Ask</button>
+  </div>
+  <div id="hint" style="margin-top:8px;color:#666"></div>
+</div>
+
+<script>
+  document.getElementById("ask").onclick = async () => {
+    const q = document.getElementById("q").value;
+    if (!q) return;
+    const chat = document.getElementById("chat");
+    chat.innerHTML += `<div><strong>You:</strong> ${escapeHtml(q)}</div>`;
+    const r = await askBot(q);
+    if (r.ok) {
+      chat.innerHTML += `<div><strong>CrowBot:</strong> ${escapeHtml(r.reply||r.choices?.[0]||"")}</div>`;
+      // check for special hint about games secret
+      if ((r.reply||"").toLowerCase().includes("secret games")) {
+        document.getElementById("hint").innerText = "CrowBot whispered: try /games.html or ask for 'games secret' in chat.";
+      }
+    } else {
+      chat.innerHTML += `<div><strong>CrowBot:</strong> Sorry, I couldn't answer.</div>`;
+    }
+    chat.scrollTop = chat.scrollHeight;
+    document.getElementById("q").value = "";
+  };
+
+  function escapeHtml(s){ return (""+s).replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
+</script>
+
+</body>
+</html>
