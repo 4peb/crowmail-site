@@ -1,0 +1,13 @@
+{
+  "name": "crowmail-worker",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --local",
+    "build": "echo build step",
+    "start": "wrangler dev"
+  },
+  "dependencies": {
+    "jose": "^4.15.0" 
+  }
+}

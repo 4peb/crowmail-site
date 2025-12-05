@@ -1,0 +1,16 @@
+name = "crowmail-api"
+main = "src/index.js"
+compatibility_date = "2025-12-05"
+
+type = "javascript"
+
+[vars]
+# Only used for local dev, set real secrets in Cloudflare dashboard
+JWT_ISSUER = "crowmail"
+JWT_LIFETIME = "7d"
+
+[bindings]
+# Add a D1 binding in Cloudflare dashboard named CROW_DB, then:
+[[d1_databases]]
+binding = "CROW_DB"
+database_name = "crow_db"
